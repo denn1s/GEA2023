@@ -5,6 +5,8 @@
 
 #include "ECS/Entity.h"
 
+#include "Game/Graphics/PixelShader.h"
+
 Pong::Pong(const char* name, int width, int height)
   : Game(name, width, height)
 {
@@ -19,24 +21,36 @@ Pong::~Pong() {
 Scene* Pong::createGameplayScene() {
   Scene* scene = new Scene("GAMEPLAY SCENE");
 
-  Entity ball = scene->createEntity("BALL", 10, 10);
-  ball.addComponent<SizeComponent>(20, 20);
-  ball.addComponent<SpeedComponent>(200, 200);
-  ball.addComponent<ColliderComponent>(false, 0);
+  Entity white = scene->createEntity("cat1", 0, 0);
+  auto& s = white.addComponent<SpriteComponent>(
+    "Sprites/Cat/SpriteSheet.png",
+    0, 0,
+    48,
+    8,
+    1000
+  );
+  s.lastUpdate = SDL_GetTicks();
 
-  Entity paddle = scene->createEntity("PLAYER 1", (screen_width/2) - 50, screen_height - 20);
-  paddle.addComponent<SizeComponent>(100, 20);
-  paddle.addComponent<SpeedComponent>(0, 0);
-  paddle.addComponent<PlayerComponent>(200);
+  Entity black = scene->createEntity("cat2", 48 * 5, 0);
+  black.addComponent<SpriteComponent>(
+    "Sprites/Cat/SpriteSheet.png", 
+    0, 0,
+    48,
+    8,
+    1000,
+    PixelShader{
+      [](Uint32 color) -> Uint32 { return (color == 0xF3F2C0) ? 0xD2B48C : color ; },
+      "red"
+    },
+    SDL_GetTicks()
+  );
 
-  
-  scene->addSetupSystem(new HelloWorldSystem());
-  scene->addRenderSystem(new RectRenderSystem());
-  scene->addUpdateSystem(new BounceUpdateSystem());
-  scene->addUpdateSystem(new MovementUpdateSystem(screen_width, screen_height));
-  scene->addEventSystem(new PlayerInputSystem());
 
-  scene->addUpdateSystem(new CollisionDetectionUpdateSystem());
+  scene->addSetupSystem(new SpriteSetupSystem(renderer, window));
+  scene->addRenderSystem(new SpriteRenderSystem());
+  scene->addUpdateSystem(new SpriteUpdateSystem());
+
+
 
   return scene;
 }

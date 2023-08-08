@@ -34,4 +34,5 @@ target_include_directories(
 target_link_libraries(
   ${PROJECT_NAME}
   ${SDL2_LIBRARIES}
+  SDL2_image
 )

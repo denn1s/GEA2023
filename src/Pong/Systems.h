@@ -4,6 +4,8 @@
 
 #include "ECS/SystemTypes/SystemTypes.h"
 
+#include "Game/Graphics/TextureManager.h"
+
 
 class HelloWorldSystem : public SetupSystem {
   public:
@@ -175,5 +177,95 @@ class BounceUpdateSystem : public UpdateSystem {
             }
           }
       );
+    }
+};
+
+class SpriteSetupSystem : public SetupSystem {
+  public:
+    SpriteSetupSystem(SDL_Renderer* renderer, SDL_Window* window)
+      : renderer(renderer), window(window) { }
+
+    ~SpriteSetupSystem() {
+      auto view = scene->r.view<SpriteComponent>();
+
+      for(auto entity : view) {
+        const auto spriteComponent = view.get<SpriteComponent>(entity);
+  
+        TextureManager::UnloadTexture(spriteComponent.name, spriteComponent.shader.name);
+      }
+    }
+
+    void run() {
+      auto view = scene->r.view<SpriteComponent>();
+
+      for(auto entity : view) {
+        const auto spriteComponent = view.get<SpriteComponent>(entity);
+  
+        TextureManager::LoadTexture(spriteComponent.name, renderer, window, spriteComponent.shader);
+      }
+    }
+
+  private:
+    SDL_Renderer* renderer;
+    SDL_Window* window;
+};
+
+
+class SpriteRenderSystem : public RenderSystem {
+  public:
+    void run(SDL_Renderer* renderer) {
+      auto view = scene->r.view<TransformComponent, SpriteComponent>();
+
+      for(auto entity : view) {
+        const auto spriteComponent = view.get<SpriteComponent>(entity);
+        const auto transformComponent = view.get<TransformComponent>(entity);
+  
+        Texture* texture = TextureManager::GetTexture(spriteComponent.name, spriteComponent.shader.name);
+  
+        SDL_Rect clip = {
+          spriteComponent.xIndex * spriteComponent.size,
+          spriteComponent.yIndex * spriteComponent.size,
+          spriteComponent.size,
+          spriteComponent.size
+        };
+
+        texture->render(
+          transformComponent.position.x,
+          transformComponent.position.y,
+          48 * 5,
+          48 * 5,
+          &clip
+        );
+      }
+    }
+};
+
+
+
+class SpriteUpdateSystem : public UpdateSystem {
+  public:
+    void run(float dT) {
+      auto view = scene->r.view<SpriteComponent>();
+
+      Uint32 now = SDL_GetTicks();
+
+      for(auto entity : view) {
+        auto& spriteComponent = view.get<SpriteComponent>(entity);
+
+        if (spriteComponent.animationFrames > 0) {
+          float timeSinceLastUpdate = now - spriteComponent.lastUpdate;
+
+          int framesToUpdate = static_cast<int>(
+            timeSinceLastUpdate / 
+            spriteComponent.animationDuration * spriteComponent.animationFrames
+          );
+
+          if (framesToUpdate > 0) {
+            spriteComponent.xIndex += framesToUpdate;
+            spriteComponent.xIndex %= spriteComponent.animationFrames;
+            spriteComponent.lastUpdate = now;            
+          }
+        }
+      }
     }
 };
