@@ -48,6 +48,7 @@ void Texture::load(std::string path, PixelShader shader) {
 	SDL_Surface* loadedSurface = IMG_Load(path.c_str());
   SDL_Surface* formattedSurface = SDL_ConvertSurfaceFormat(loadedSurface, format, 0);
   newTexture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, loadedSurface->w, loadedSurface->h);
+  SDL_SetTextureBlendMode(newTexture, SDL_BLENDMODE_BLEND);
 
   Uint32* targetPixels;
   SDL_LockTexture(newTexture, NULL, reinterpret_cast<void**>(&targetPixels), &pitch);

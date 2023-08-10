@@ -27,6 +27,11 @@ class Entity {
       scene->r.remove<T>(handle);
     }
 
+    template<typename T>
+    auto& get(auto&&... args) {
+      return scene->r.get_or_emplace<T>(handle, std::forward<decltype(args)>(args)...);
+    }
+
   private:
     entt::entity handle;
     Scene* scene;
