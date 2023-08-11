@@ -34,7 +34,7 @@ struct SpriteComponent {
 };
 
 struct TilemapComponent {
-  std::vector<Texture*> tiles;
+  std::vector<Texture*> map;
   int width;
   int height;
   int tileSize;

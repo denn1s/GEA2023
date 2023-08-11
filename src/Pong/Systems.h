@@ -2,6 +2,7 @@
 #include <print.h>
 #include "Components.h"
 
+#include "ECS/Entity.h"
 #include "ECS/SystemTypes/SystemTypes.h"
 
 #include "Game/Graphics/TextureManager.h"
@@ -266,7 +267,7 @@ class SpriteUpdateSystem : public UpdateSystem {
     }
 };
 
-/*
+
 class TilemapSetupSystem : public SetupSystem {
   public:
     TilemapSetupSystem(SDL_Renderer* renderer)
@@ -276,18 +277,48 @@ class TilemapSetupSystem : public SetupSystem {
     }
 
     void run() {
-      Texture* waterTexture = LoadTexture("Tiles/Water.png", renderer);
+      Texture* waterTexture = TextureManager::LoadTexture("Tiles/Water.png", renderer);
+      Texture* grassTexture = TextureManager::LoadTexture("Tiles/Grass.png", renderer);
 
       int map[] = {
-        0, 1,
-        0, 1
+        0, 1, 0,
+        0, 1, 0,
+        0, 0, 1
+      };
+
+      auto& tilemap = scene->world->get<TilemapComponent>();
+      tilemap.width = 3;
+      tilemap.height = 3;
+      tilemap.tileSize = 16;
+
+      for(int i = 0; i < tilemap.height * tilemap.width; i++) {
+        tilemap.map.push_back((map[i] == 0) ? grassTexture : waterTexture);
       }
-
-
     }
 
   private:
     SDL_Renderer* renderer;
 };
 
-*/
+
+class TilemapRenderSystem : public RenderSystem {
+  public:
+    void run(SDL_Renderer* renderer) {
+      auto& tilemap = scene->world->get<TilemapComponent>();
+
+      for (int y = 0; y < tilemap.height; y++) {
+        for (int x = 0; x < tilemap.width; x++) {
+          Texture* texture = tilemap.map[y * tilemap.width + x];
+
+          int size = tilemap.tileSize * 5;
+
+          texture->render(
+            x * size,
+            y * size,
+            size,
+            size
+          );
+        }
+      }
+    }
+};

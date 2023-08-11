@@ -33,6 +33,8 @@ class Scene {
 
     entt::registry r;
 
+    Entity* world;
+
   private:
     std::string name;
   
