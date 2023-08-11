@@ -9,7 +9,6 @@
 
 class Texture {
 	public:
-		Texture(SDL_Renderer* renderer, SDL_Window* window);
 		Texture(SDL_Renderer* renderer);
 		~Texture();
 

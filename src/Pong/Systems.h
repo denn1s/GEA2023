@@ -182,8 +182,8 @@ class BounceUpdateSystem : public UpdateSystem {
 
 class SpriteSetupSystem : public SetupSystem {
   public:
-    SpriteSetupSystem(SDL_Renderer* renderer, SDL_Window* window)
-      : renderer(renderer), window(window) { }
+    SpriteSetupSystem(SDL_Renderer* renderer)
+      : renderer(renderer) { }
 
     ~SpriteSetupSystem() {
       auto view = scene->r.view<SpriteComponent>();
@@ -201,15 +201,13 @@ class SpriteSetupSystem : public SetupSystem {
       for(auto entity : view) {
         const auto spriteComponent = view.get<SpriteComponent>(entity);
   
-        TextureManager::LoadTexture(spriteComponent.name, renderer, window, spriteComponent.shader);
+        TextureManager::LoadTexture(spriteComponent.name, renderer, spriteComponent.shader);
       }
     }
 
   private:
     SDL_Renderer* renderer;
-    SDL_Window* window;
 };
-
 
 class SpriteRenderSystem : public RenderSystem {
   public:
@@ -240,8 +238,6 @@ class SpriteRenderSystem : public RenderSystem {
     }
 };
 
-
-
 class SpriteUpdateSystem : public UpdateSystem {
   public:
     void run(float dT) {
@@ -269,3 +265,29 @@ class SpriteUpdateSystem : public UpdateSystem {
       }
     }
 };
+
+/*
+class TilemapSetupSystem : public SetupSystem {
+  public:
+    TilemapSetupSystem(SDL_Renderer* renderer)
+      : renderer(renderer) { }
+
+    ~TilemapSetupSystem() {
+    }
+
+    void run() {
+      Texture* waterTexture = LoadTexture("Tiles/Water.png", renderer);
+
+      int map[] = {
+        0, 1,
+        0, 1
+      }
+
+
+    }
+
+  private:
+    SDL_Renderer* renderer;
+};
+
+*/

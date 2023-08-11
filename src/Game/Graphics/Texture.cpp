@@ -1,18 +1,6 @@
 #include "Texture.h"
 #include <print.h>
 
-Texture::Texture(SDL_Renderer* renderer, SDL_Window* window) 
-  : renderer(renderer) {
-	texture = NULL;
-	width = 0;
-	height = 0;
-	pixels = NULL;
-	pitch = 0;
-
-  format = SDL_GetWindowPixelFormat(window);
-  mappingFormat = SDL_AllocFormat(format);
-}
-
 Texture::Texture(SDL_Renderer* renderer) 
   : renderer(renderer) {
 	texture = nullptr;
