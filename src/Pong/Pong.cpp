@@ -20,32 +20,13 @@ Pong::~Pong() {
 
 Scene* Pong::createGameplayScene() {
   Scene* scene = new Scene("GAMEPLAY SCENE");
-
-  Entity white = scene->createEntity("cat1", 0, 0);
-  auto& s = white.addComponent<SpriteComponent>(
-    "Sprites/Cat/SpriteSheet.png",
-    0, 0,
-    48,
-    8,
-    1000
-  );
-  s.lastUpdate = SDL_GetTicks();
-
-  Entity black = scene->createEntity("cat2", 40, 0);
-  black.addComponent<SpriteComponent>(
-    "Sprites/Cat/SpriteSheet.png", 
-    0, 0,
-    48,
-    8,
-    1000,
-    PixelShader{
-      [](Uint32 color) -> Uint32 { return (color == 0xF3F2C0FF) ? 0xD2B48CFF : color ; },
-      "red"
-    },
-    SDL_GetTicks()
-  );
+  
+  scene->addSetupSystem(new WorldSetupSystem());
+  scene->addSetupSystem(new CameraSetupSystem());
+  scene->addSetupSystem(new PlayerSetupSystem());
 
   scene->addSetupSystem(new TilemapSetupSystem(renderer));
+  scene->addSetupSystem(new AutoTilingSetupSystem());
   scene->addRenderSystem(new TilemapRenderSystem());
 
   scene->addSetupSystem(new SpriteSetupSystem(renderer));
@@ -53,6 +34,9 @@ Scene* Pong::createGameplayScene() {
   scene->addUpdateSystem(new SpriteUpdateSystem());
 
 
-
+  scene->addEventSystem(new PlayerInputSystem());
+  scene->addUpdateSystem(new MovementUpdateSystem());
+  scene->addUpdateSystem(new PlayerSpriteUpdateSystem());
+  scene->addUpdateSystem(new CameraFollowUpdateSystem());
   return scene;
 }

@@ -34,6 +34,8 @@ class Scene {
     entt::registry r;
 
     Entity* world;
+    Entity* mainCamera;
+    Entity* player;
 
   private:
     std::string name;

@@ -4,6 +4,7 @@
 #include <string>
 #include "Game/Graphics/PixelShader.h"
 #include "Game/Graphics/Texture.h"
+#include "Game/Graphics/Tile.h"
 
 
 struct NameComponent {
@@ -11,9 +12,8 @@ struct NameComponent {
 };
 
 struct TransformComponent {
-  glm::vec2 position;
-//  glm::vec2 scale;
-//  float rotation;
+  int x;
+  int y;
 };
 
 struct SpeedComponent {
@@ -34,8 +34,20 @@ struct SpriteComponent {
 };
 
 struct TilemapComponent {
-  std::vector<Texture*> map;
   int width;
   int height;
   int tileSize;
+  std::vector<Tile> map;
 };
+
+struct CameraComponent {
+  int viewportWidth;
+  int viewportHeight;
+  float zoom;
+};
+
+struct WorldComponent {
+  int width;
+  int height;
+};
+

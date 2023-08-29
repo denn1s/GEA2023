@@ -11,9 +11,6 @@
 Scene::Scene(const std::string& name)
   : name(name) {
     print("Scene Created: ", name);
-
-    world = new Entity(r.create(), this);
-    world->addComponent<TilemapComponent>();
 }
 
 Scene::~Scene() {
@@ -27,7 +24,7 @@ Scene::~Scene() {
 Entity Scene::createEntity(const std::string& name, int x, int y) {
   Entity entity = { r.create(), this };
   entity.addComponent<NameComponent>(name);
-  entity.addComponent<TransformComponent>(glm::vec2(x, y));
+  entity.addComponent<TransformComponent>(x, y);
 
   return entity;
 }
