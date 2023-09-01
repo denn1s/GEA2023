@@ -35,8 +35,13 @@ Scene* Pong::createGameplayScene() {
 
 
   scene->addEventSystem(new PlayerInputSystem());
+  scene->addUpdateSystem(new TileCollisionUpdateSystem());
   scene->addUpdateSystem(new MovementUpdateSystem());
   scene->addUpdateSystem(new PlayerSpriteUpdateSystem());
   scene->addUpdateSystem(new CameraFollowUpdateSystem());
+
+  scene->addRenderSystem(new ColliderRenderSystem());
+  scene->addRenderSystem(new TileColliderRenderSystem());
+
   return scene;
 }

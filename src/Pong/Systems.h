@@ -1,6 +1,7 @@
 #pragma once
 #include <SDL_events.h>
 #include <SDL_rect.h>
+#include <SDL_render.h>
 #include <SDL_timer.h>
 #include <print.h>
 #include <FastNoise.h>
@@ -56,7 +57,7 @@ class MovementUpdateSystem : public UpdateSystem {
 class PlayerInputSystem : public EventSystem {
   void run(SDL_Event event) {
     auto& playerSpeed = scene->player->get<SpeedComponent>();
-    int speed = 100;
+    int speed = 200;
 
     if (event.type == SDL_KEYDOWN) {
       switch(event.key.keysym.sym) {
@@ -91,75 +92,6 @@ class PlayerInputSystem : public EventSystem {
       }
     }
   }
-};
-
-class CollisionDetectionUpdateSystem : public UpdateSystem {
-  void run(float dT) {
-    scene->r.view<TransformComponent, SizeComponent, ColliderComponent>()
-      .each(
-        [&](const auto entity,
-            auto& transformComponent,
-            auto& sizeComponent,
-            auto& colliderComponent
-          ) {
-            // cada entidad que tiene collider
-            // AABB
-            scene->r.view<TransformComponent, SpeedComponent, SizeComponent>()
-            .each(
-              [&](const auto entity2,
-                  auto& transformComponent2,
-                  auto& speedComponent2,
-                  auto& sizeComponent2
-                ) {
-                  if (entity == entity2) {
-                    // skip self collision
-                    return;
-                  }
-
-                  SDL_Rect boxCol1 = {
-                    static_cast<int>(transformComponent.x),
-                    static_cast<int>(transformComponent.y),
-                    sizeComponent.w,
-                    sizeComponent.h
-                  };
-
-                  SDL_Rect boxCol2 = {
-                    static_cast<int>(transformComponent2.x),
-                    static_cast<int>(transformComponent2.y),
-                    sizeComponent2.w,
-                    sizeComponent2.h
-                  };
-
-                  if (SDL_HasIntersection(&boxCol1, &boxCol2)) {
-                    colliderComponent.triggered = true;
-                    colliderComponent.transferSpeed = speedComponent2.x;
-                  }
-
-              }
-            );
-        }
-      );
-    }
-};
-
-class BounceUpdateSystem : public UpdateSystem {
-  void run(float dT) {
-    scene->r.view<TransformComponent, SpeedComponent, ColliderComponent>()
-      .each(
-        [&](const auto entity,
-            auto& transformComponent,
-            auto& speedComponent,
-            auto& colliderComponent
-          ) {
-            if (colliderComponent.triggered) {
-              speedComponent.y *= -1.5;
-              speedComponent.x += colliderComponent.transferSpeed;
-
-              colliderComponent.triggered = false;
-            }
-          }
-      );
-    }
 };
 
 class SpriteSetupSystem : public SetupSystem {
@@ -260,6 +192,8 @@ class TilemapSetupSystem : public SetupSystem {
     }
 
     void run() {
+      const auto playerPosition = scene->player->get<TransformComponent>();
+      const auto z = scene->mainCamera->get<CameraComponent>().zoom;
       Texture* waterTexture = TextureManager::LoadTexture("Tilesets/Water.png", renderer);
       Texture* grassTexture = TextureManager::LoadTexture("Tilesets/Grass.png", renderer);
 
@@ -276,6 +210,9 @@ class TilemapSetupSystem : public SetupSystem {
       Terrain grass{grassTexture};
       Terrain water{waterTexture};
 
+      int centerX = playerPosition.x / z / tilemap.tileSize;
+      int centerY = playerPosition.y / z / tilemap.tileSize;
+
       for (int y = 0; y < tilemap.height; y++) {
         for (int x = 0; x < tilemap.width; x++) {
           float factor = noise.GetNoise(
@@ -286,13 +223,14 @@ class TilemapSetupSystem : public SetupSystem {
 
           Tile& tile = tilemap.map[index];
 
-          if (factor < 0.5) {
+          if ((std::abs(centerX - x) < 5 && std::abs(centerY - y) < 5) || factor < 0.5) {
             tile.up = grass;
             tile.down = water;
             tile.needsAutoTiling = true;
           } else {
             tile.up = water;
             tile.needsAutoTiling = false;
+            tile.isWalkable = false;
           }
         }
       }
@@ -558,6 +496,7 @@ class PlayerSetupSystem : public SetupSystem {
         1000
       );
       s.lastUpdate = SDL_GetTicks();
+      scene->player->addComponent<ColliderComponent>(19, 22, 10, 10, SDL_Color{200, 0, 200});
     }
 };
 
@@ -613,4 +552,118 @@ public:
     }
   }
 };
+
+class ColliderRenderSystem : public RenderSystem {
+public:
+  void run(SDL_Renderer* r) {
+    auto view = scene->r.view<TransformComponent, ColliderComponent>();
+    const auto c = scene->mainCamera->get<TransformComponent>();
+    const auto z = scene->mainCamera->get<CameraComponent>().zoom;
+
+    for(auto entity : view) {
+      const auto colliderComponent = view.get<ColliderComponent>(entity);
+      const auto transformComponent = view.get<TransformComponent>(entity);
+
+      SDL_Rect col {
+        static_cast<int>(transformComponent.x + colliderComponent.xo * z - c.x),
+        static_cast<int>(transformComponent.y + colliderComponent.yo * z - c.y),
+        static_cast<int>(colliderComponent.w * z),
+        static_cast<int>(colliderComponent.h * z)
+      };
+      SDL_SetRenderDrawColor(r, colliderComponent.color.r, colliderComponent.color.g, colliderComponent.color.b, 200);
+      SDL_RenderDrawRect(r, &col);
+    }
+  }
+};
+
+class TileColliderRenderSystem : public RenderSystem {
+public:
+  void run(SDL_Renderer* r) {
+    const auto tilemap = scene->world->get<TilemapComponent>();
+    const int width = tilemap.width;
+    const int height = tilemap.height;
+    const int size = tilemap.tileSize;
+    const auto c = scene->mainCamera->get<TransformComponent>();
+    const auto cameraComponent = scene->mainCamera->get<CameraComponent>();
+    const int z = cameraComponent.zoom;
+    
+    int startX = std::max(0, c.x / (size * z));
+    int endX = std::min(width, (c.x + cameraComponent.viewportWidth) / (size * z));
+    int startY = std::max(0, c.y / (size * z));
+    int endY = std::min(height, (c.y + cameraComponent.viewportHeight) / (size * z));
+
+    SDL_SetRenderDrawColor(r, 0, 0, 255, 255); 
+
+    for (int y = startY; y <= endY; y++) {
+      for (int x = startX; x <= endX; x++) {
+        Tile tile = tilemap.map[y * tilemap.width + x];
+        SDL_Rect col {
+          static_cast<int>(x * size * z - c.x),
+          static_cast<int>(y * size * z - c.y),
+          static_cast<int>(size * z),
+          static_cast<int>(size * z)
+        };
+        if (!tile.isWalkable) {
+          SDL_RenderFillRect(r, &col);
+        }
+      }
+    }
+  }
+};
+
+class TileCollisionUpdateSystem : public UpdateSystem {
+  public:
+    void run(float dT) {
+      const auto playerPosition = scene->player->get<TransformComponent>();
+      const auto playerCollider = scene->player->get<ColliderComponent>();
+      const auto world = scene->world->get<WorldComponent>();
+      const auto cameraZoom = scene->mainCamera->get<CameraComponent>().zoom;
+      auto& playerMovement = scene->player->get<SpeedComponent>();
+
+      const auto tilemapComponent = scene->world->get<TilemapComponent>();
+      const int tileSize = tilemapComponent.tileSize * cameraZoom;
+
+      if (playerMovement.x == 0 && playerMovement.y == 0) {
+        return;
+      }
+
+      const int colliderPositionX = playerPosition.x + playerCollider.xo * cameraZoom;
+      const int colliderPositionY = playerPosition.y + playerCollider.yo * cameraZoom;
+      const int colliderSize = playerCollider.w * cameraZoom;
+
+      const int futureX = colliderPositionX + playerMovement.x * dT;
+      const int futureY = colliderPositionY + playerMovement.y * dT;
+      const int futureRightX = futureX + colliderSize;
+      const int futureBottomY = futureY + colliderSize;
+
+      if (futureX <= 0 || futureY <= 0 || futureRightX >= world.width * cameraZoom || futureBottomY >= world.height * cameraZoom) {
+        playerMovement.x = 0;
+        playerMovement.y = 0;
+      }
+
+      
+
+    // Convert the future positions from pixels to tile coordinates.
+    std::vector<std::pair<int, int>> futureTiles = {
+        {futureX / tileSize, futureY / tileSize}, // top left corner
+        {futureRightX / tileSize, futureY / tileSize}, // top right corner
+        {futureX / tileSize, futureBottomY / tileSize}, // bottom left corner
+        {futureRightX / tileSize, futureBottomY / tileSize}  // bottom right corner
+    };
+
+    for (const auto& [tileX, tileY] : futureTiles) {
+        // Get the tile at the future position.
+        const Tile& tile = tilemapComponent.map[tileY * tilemapComponent.width + tileX];
+
+        // If the tile is not walkable, set the speed to 0.
+        if (!tile.isWalkable) {
+            playerMovement.x = 0;
+            playerMovement.y = 0;
+            return;
+        }
+    }
+  }
+};
+
+
 

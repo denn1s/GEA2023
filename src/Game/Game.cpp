@@ -9,6 +9,7 @@ Game::Game(const char* name, int width, int height)
   window = SDL_CreateWindow(name, 0, 0, width, height, 0);
   renderer = SDL_CreateRenderer(window, 0, 0);
 
+
   lastFPSUpdate = 0;
   frameStartTimestamp = 0;
   frameEndTimestamp = 0;

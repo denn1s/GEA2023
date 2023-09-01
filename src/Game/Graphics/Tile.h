@@ -11,5 +11,6 @@ struct Tile {
   Terrain up;
   Terrain down;
   bool needsAutoTiling;
+  bool isWalkable = true;
 };
 
